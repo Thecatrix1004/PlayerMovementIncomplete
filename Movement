@@ -15,10 +15,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float moveSpeed = 7f;
     [SerializeField] private float jumpForce = 14F;
     [SerializeField] private int maxJumpCount = 2;
-    private int jumpCount = 0;
+    private bool isGrounded = false;
+    [SerializeField] private int jumpCount = 0;
     private float defaultGravityScale;
-
-    private bool isJumping = false;
 
     private enum MovementState { IDLE, SALTO, CAIDA, CORRIENDO }
 
@@ -40,18 +39,20 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-
-        Debug.Log("Update method called!"); // Agrega esta línea para verificar si el método se ejecuta
-
         dirX = Input.GetAxisRaw("Horizontal");
         rb.velocity = new Vector2(dirX * moveSpeed, rb.velocity.y);
 
-        // Verificar si se presiona la tecla de salto y el jugador está en el suelo
-        if (Input.GetButtonDown("Jump") && !isJumping)
-        {
-            GetComponent<Rigidbody>().AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-            isJumping = true;
+        isGrounded = IsGrounded();
 
+        // Restablece el contador de saltos si está en el suelo
+        if (isGrounded)
+        {
+            jumpCount = 0;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space) && (isGrounded || jumpCount < maxJumpCount))
+        {
+            Jump();
         }
 
         UpdateAnimationState();
@@ -59,32 +60,28 @@ public class PlayerMovement : MonoBehaviour
 
     private void Jump()
     {
+        // Restablece la velocidad vertical antes de aplicar el nuevo impulso
+        rb.velocity = new Vector2(rb.velocity.x, 0f);
 
-        Debug.Log("Jump method called!"); // Agrega esta línea para verificar si el método se ejecuta
+        // Aplica la fuerza de salto
+        rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
 
-        if (jumpCount < maxJumpCount)
+        // Incrementa el contador de saltos
+        jumpCount++;
+
+        // Reproduce el sonido de salto
+        jumpSoundEffect.Play();
+
+        // Restablece el contador de saltos si está en el suelo
+        if (isGrounded)
         {
-
-            Debug.Log("Attempting to jump!");
-
-            // Aplica la fuerza de salto
-            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-
-            // Incrementa el contador de saltos antes de saltar
-            jumpCount++;
-
-            // Tu lógica de salto aquí
-            jumpSoundEffect.Play();
-
-
-            Debug.Log("Jumped. Jump count: " + jumpCount);
-
+            jumpCount = 0;
         }
     }
 
 
-   
-        
+
+
     private void UpdateAnimationState()
     {
 
@@ -120,32 +117,18 @@ public class PlayerMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        Debug.Log("IsGrounded method called!"); // Agrega esta línea para verificar si el método se ejecuta
+        float circleRadius = 1f;
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, circleRadius, jumpableGround);
 
-        float raycastLength = 0.1f;
-        RaycastHit2D hit = Physics2D.Raycast(new Vector2(coll.bounds.center.x, coll.bounds.center.y), Vector2.down, raycastLength, LayerMask.GetMask("Ground"));
-
-        if (hit.collider != null || rb.velocity.y == 0f)
+        if (colliders.Length > 0)
         {
+            // Si hay al menos un collider en el círculo, se considera que está en el suelo
             jumpCount = 0;
+            return true;
         }
 
-        return hit.collider != null;
+        return false;
     }
 
-
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
-        {
-            isJumping = false;
-        }
-    }
-
-
-}
-
-        return hit.collider != null;
-    }
 
 }
