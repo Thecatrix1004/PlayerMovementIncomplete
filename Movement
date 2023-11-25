@@ -1,0 +1,139 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class PlayerMovement : MonoBehaviour
+{
+    private Rigidbody2D rb;
+    private BoxCollider2D coll;
+    private SpriteRenderer sprite;
+    private Animator anim;
+
+    [SerializeField] private LayerMask jumpableGround;
+
+    private float dirX = 0f;
+    [SerializeField] private float moveSpeed = 7f;
+    [SerializeField] private float jumpForce = 14F;
+    [SerializeField] private int maxJumpCount = 2;
+    private int jumpCount = 0;
+    private float defaultGravityScale;
+
+    private enum MovementState { IDLE, SALTO, CAIDA, CORRIENDO }
+
+    [SerializeField] private AudioSource jumpSoundEffect;
+
+    // Start is called before the first frame update
+    private void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        coll = GetComponent<BoxCollider2D>();
+        sprite = GetComponent<SpriteRenderer>();
+        anim = GetComponent<Animator>();
+
+        // Almacena el valor original de gravityScale
+        defaultGravityScale = rb.gravityScale;
+    }
+
+
+
+    private void Update()
+    {
+
+        Debug.Log("Update method called!"); // Agrega esta línea para verificar si el método se ejecuta
+
+        dirX = Input.GetAxisRaw("Horizontal");
+        rb.velocity = new Vector2(dirX * moveSpeed, rb.velocity.y);
+
+        // Verificar si se presiona la tecla de salto y el jugador está en el suelo
+        if (Input.GetKeyDown(KeyCode.Space) && IsGrounded())
+        {
+
+            Debug.Log("Jump button pressed and is grounded!"); // Agrega esta línea
+
+            // Restablecer el contador de saltos
+            jumpCount = 0;
+
+            // Llamar al método de salto
+            Jump();
+        }
+
+        UpdateAnimationState();
+    }
+
+    private void Jump()
+    {
+
+        Debug.Log("Jump method called!"); // Agrega esta línea para verificar si el método se ejecuta
+
+        if (jumpCount < maxJumpCount)
+        {
+
+            Debug.Log("Attempting to jump!");
+
+            // Aplica la fuerza de salto
+            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+
+            // Incrementa el contador de saltos antes de saltar
+            jumpCount++;
+
+            // Tu lógica de salto aquí
+            jumpSoundEffect.Play();
+
+
+            Debug.Log("Jumped. Jump count: " + jumpCount);
+
+        }
+    }
+
+
+   
+        
+    private void UpdateAnimationState()
+    {
+
+        MovementState state;
+
+        if (dirX > 0f)
+        {
+            state = MovementState.CORRIENDO;
+            sprite.flipX = false;
+        }
+        else if (dirX < 0f)
+        {
+            state = MovementState.CORRIENDO;
+            sprite.flipX = true;
+        }
+        else
+        {
+            state = MovementState.IDLE;
+        }
+
+        if (rb.velocity.y > .2f)
+        {
+            state = MovementState.SALTO;
+        }
+        else if (rb.velocity.y < -.2f)
+        {
+            state = MovementState.CAIDA;
+        }
+
+        anim.SetInteger("state", (int)state);
+
+    }
+
+    private bool IsGrounded()
+    {
+        Debug.Log("IsGrounded method called!"); // Agrega esta línea para verificar si el método se ejecuta
+
+        float raycastLength = 0.1f;
+        RaycastHit2D hit = Physics2D.Raycast(new Vector2(coll.bounds.center.x, coll.bounds.center.y), Vector2.down, raycastLength, LayerMask.GetMask("Ground"));
+
+        if (hit.collider != null || rb.velocity.y == 0f)
+        {
+            jumpCount = 0;
+        }
+
+        return hit.collider != null;
+    }
+
+}
