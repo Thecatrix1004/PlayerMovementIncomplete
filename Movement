@@ -18,6 +18,8 @@ public class PlayerMovement : MonoBehaviour
     private int jumpCount = 0;
     private float defaultGravityScale;
 
+    private bool isJumping = false;
+
     private enum MovementState { IDLE, SALTO, CAIDA, CORRIENDO }
 
     [SerializeField] private AudioSource jumpSoundEffect;
@@ -45,16 +47,11 @@ public class PlayerMovement : MonoBehaviour
         rb.velocity = new Vector2(dirX * moveSpeed, rb.velocity.y);
 
         // Verificar si se presiona la tecla de salto y el jugador está en el suelo
-        if (Input.GetKeyDown(KeyCode.Space) && IsGrounded())
+        if (Input.GetButtonDown("Jump") && !isJumping)
         {
+            GetComponent<Rigidbody>().AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            isJumping = true;
 
-            Debug.Log("Jump button pressed and is grounded!"); // Agrega esta línea
-
-            // Restablecer el contador de saltos
-            jumpCount = 0;
-
-            // Llamar al método de salto
-            Jump();
         }
 
         UpdateAnimationState();
@@ -132,6 +129,21 @@ public class PlayerMovement : MonoBehaviour
         {
             jumpCount = 0;
         }
+
+        return hit.collider != null;
+    }
+
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isJumping = false;
+        }
+    }
+
+
+}
 
         return hit.collider != null;
     }
